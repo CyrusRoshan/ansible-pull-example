@@ -1,0 +1,41 @@
+---
+- name: Install dependencies
+  hosts: localhost
+  tasks:
+  - name: Install docker-compose
+    pip:
+      name: docker-compose
+
+- name: Run main playbook for the first time
+  import_playbook: playbook.yml
+
+- name: Set up for future scheduled runs
+  hosts: localhost
+  vars:
+    cron_schedule: "* * * * *"
+    # cron_schedule: "30 * * * *"
+    cron_file_path: "/etc/cron.d/ansible-deployments"
+    log_file_path: "/var/log/ansible-deployments/ansible-deployments.log"
+    ansible_pull_command: >-
+      ansible-pull
+      --directory /var/ansible-deployments
+      --checkout master
+      --url git://github.com/cyrusroshan/ansible-pull-example
+      playbook.yml
+  tasks:
+  - name: Create log file directory
+    file:
+      path: "{{ log_file_path | dirname }}"
+      state: directory
+      recurse: yes
+  - name: Create log file
+    file:
+      path: "{{ log_file_path }}"
+      state: touch
+      owner: root
+      group: root
+      mode: 0664
+  - name: Schedule the ansible-pull job with cron
+    copy:
+      content: "{{ cron_schedule }} root {{ ansible_pull_command }} &>> {{ log_file_path }} "
+      dest: "{{ cron_file_path }}"
