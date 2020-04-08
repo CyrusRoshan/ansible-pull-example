@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  tasks:
+  - name: Install docker-compose
+    pip:
+      name: docker-compose
+
+- hosts: localhost
+  tasks:
+  - name: Start docker-compose
+    docker_compose:
+      project_name: example-project
+      definition:
+        version: '2'
+        services:
+          redis:
+            image: redis
+            restart: always
+          hello-world:
+            image: hello-world
+            restart: always
+            depends_on:
+              - redis
