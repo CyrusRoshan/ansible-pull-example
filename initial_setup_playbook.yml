@@ -53,7 +53,7 @@
         Description=Schedule ansible-deployments.service
 
         [Timer]
-        OnBootSec=5min
+        OnBootSec=1min
         OnUnitActiveSec={{ schedule_frequency }}
         RandomizedDelaySec={{ random_delay_seconds }}
 
