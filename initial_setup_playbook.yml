@@ -9,13 +9,12 @@
 - name: Run main playbook for the first time
   import_playbook: playbook.yml
 
-- name: Set up for future scheduled runs
+- name: Set up future scheduled runs
   hosts: localhost
   vars:
-    # timeout_seconds: "90"
-    # schedule_frequency: 30m
-    timeout_seconds: "30"
-    schedule_frequency: 1m
+    timeout_seconds: "90"
+    random_delay_seconds: "120"
+    schedule_frequency: 10m
     ansible_pull_command: >-
       /usr/local/bin/ansible-pull
       --directory /var/ansible-deployments
@@ -44,6 +43,7 @@
         [Timer]
         OnBootSec=5min
         OnUnitActiveSec={{ schedule_frequency }}
+        RandomizedDelaySec={{ random_delay_seconds }}
 
         [Install]
         WantedBy=timers.target
