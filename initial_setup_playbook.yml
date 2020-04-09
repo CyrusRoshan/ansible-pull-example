@@ -2,9 +2,21 @@
 - name: Install dependencies
   hosts: localhost
   tasks:
-  - name: Install docker-compose
+  - name: Check if docker is installed
+    shell: command -v docker
+    register: docker_exists
+    ignore_errors: yes
+  - name: Install docker
+    shell:
+      cmd: curl -fsSL https://get.docker.com | sh
+      warn: False
+    when: docker_exists.stdout | length == 0
+  - name: Install docker and docker-compose python libs
     pip:
-      name: docker-compose
+      name:
+        - docker
+        - docker-compose
+
 
 - name: Run main playbook for the first time
   import_playbook: playbook.yml
