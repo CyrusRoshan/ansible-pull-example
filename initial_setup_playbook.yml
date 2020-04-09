@@ -12,30 +12,45 @@
 - name: Set up for future scheduled runs
   hosts: localhost
   vars:
-    cron_schedule: "* * * * *"
-    # cron_schedule: "30 * * * *"
-    cron_file_path: "/etc/cron.d/ansible-deployments"
-    log_file_path: "/var/log/ansible-deployments/ansible-deployments.log"
+    # timeout_seconds: "90"
+    # schedule_frequency: 30m
+    timeout_seconds: "30"
+    schedule_frequency: 1m
     ansible_pull_command: >-
-      ansible-pull
+      /usr/local/bin/ansible-pull
       --directory /var/ansible-deployments
       --checkout master
       --url git://github.com/cyrusroshan/ansible-pull-example
       playbook.yml
   tasks:
-  - name: Create log file directory
-    file:
-      path: "{{ log_file_path | dirname }}"
-      state: directory
-      recurse: yes
-  - name: Create log file
-    file:
-      path: "{{ log_file_path }}"
-      state: touch
-      owner: root
-      group: root
-      mode: 0664
-  - name: Schedule the ansible-pull job with cron
+  - name: Create the systemd unit file
     copy:
-      content: "{{ cron_schedule }} root {{ ansible_pull_command }} &>> {{ log_file_path }} "
-      dest: "{{ cron_file_path }}"
+      content: |
+        [Unit]
+        Description=Runs deployments via ansible-pull
+
+        [Service]
+        User=root
+        ExecStart={{ ansible_pull_command }}
+        TimeoutSec={{ timeout_seconds }}
+
+      dest: "/etc/systemd/system/ansible-deployments.service"
+  - name: Create the systemd timer
+    copy:
+      content: |
+        [Unit]
+        Description=Schedule ansible-deployments.service
+
+        [Timer]
+        OnBootSec=5min
+        OnUnitActiveSec={{ schedule_frequency }}
+
+        [Install]
+        WantedBy=timers.target
+      dest: "/etc/systemd/system/ansible-deployments.timer"
+  - name: Reload the systemd daemon and start the timer
+    systemd:
+      name: ansible-deployments.timer
+      enabled: yes
+      state: started
+      daemon_reload: yes
